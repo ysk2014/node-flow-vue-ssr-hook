@@ -1,11 +1,9 @@
 let path = require("path");
-let VueSSRServerPlugin = require('vue-server-renderer/server-plugin');
-let VueSSRClientPlugin = require('vue-server-renderer/client-plugin');
 
 exports.vueSSRServer = {
     enable: true,
     type: 'server',
-    name: VueSSRServerPlugin,
+    name: 'vue-server-renderer/server-plugin',
     args() {
         return { filename: this.config.serverBundle };
     }
@@ -14,7 +12,7 @@ exports.vueSSRServer = {
 exports.vueSSRClient = {
     enable: true,
     type: 'client',
-    name: VueSSRClientPlugin,
+    name: 'vue-server-renderer/client-plugin',
     args() {
         return { filename: this.config.clientManifest };
     }
