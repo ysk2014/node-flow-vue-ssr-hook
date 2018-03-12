@@ -6,16 +6,6 @@ let plugin = require("./config/plugin");
 
 module.exports = class VueSSRHook {
     constructor(options = {}) {
-        let babelOptions = {
-            "presets": [
-                ["env", {
-                    "modules": false
-                }],
-                "stage-2"
-            ]
-        }
-        this.babelOptions = options.babel || babelOptions;
-
         let defaults = {
             output: "server-bundle.js",
             serverBundle: "server-bundle.json",
@@ -83,10 +73,12 @@ module.exports = class VueSSRHook {
             let distPath = builder.options.build.outputPath;
             let bundlePath = path.resolve(distPath, this.options.serverBundle);
             let clientPath = path.resolve(distPath, this.options.clientManifest);
-
+            
             if (sharedFS && sharedFS.existsSync(bundlePath) && sharedFS.existsSync(clientPath)) {
                 console.info("create or update ssr json");
                 callback && callback(sharedFS);
+            } else {
+                console.log("webpack css config error");
             }
         })
     }
@@ -96,36 +88,20 @@ module.exports = class VueSSRHook {
 
         const cssLoader = {
             loader: 'css-loader',
-            options: {
+            options: Object.assign({}, {
                 sourceMap: options.sourceMap
-            }
+            }, options.loaderOptions.css)
         };
 
         var postcssLoader = {
             loader: 'postcss-loader',
-            options: {
-                useConfigFile: false,
-                sourceMap: options.sourceMap,
-                ident: 'postcss',
-                plugins: ()=> [
-                    require('postcss-flexbugs-fixes'),
-                    require('autoprefixer')({
-                        browsers: [
-                            '>1%',
-                            'last 4 versions',
-                            'Firefox ESR',
-                            'not ie < 9',
-                        ],
-                        flexbox: 'no-2009',
-                    }),
-                ],
-            }
+            options: options.loaderOptions.postcss
         }
         
         function generateLoaders (loader, loaderOptions) {
             const loaders = [cssLoader, postcssLoader];
 
-            if (options.extract && options.merge) {
+            if (options.extract && options.imerge) {
                 loaders.push({
                     loader: 'imerge-loader'
                 })
@@ -136,7 +112,7 @@ module.exports = class VueSSRHook {
                     loader: loader + '-loader',
                     options: Object.assign({}, loaderOptions, {
                         sourceMap: options.sourceMap
-                    })
+                    }, options.loaderOptions[loader])
                 })
             }
         
@@ -162,38 +138,33 @@ module.exports = class VueSSRHook {
         }
     }
 
-    vueLoader({ cssSourceMap, extract, fallback}) {
+    vueLoader({ cssSourceMap, extract, fallback, imerge, loaderOptions}) {
         let cssLoaders = this.cssLoaders({
             sourceMap: cssSourceMap,
             extract: extract,
-            fallback: fallback
+            fallback: fallback,
+            imerge: imerge,
+            loaderOptions: loaderOptions
         });
+
+        
+        let postcss = loaderOptions.postcss;
+        
+        if (typeof loaderOptions.postcss.plugins == "function") {
+            postcss = Object.assign({}, loaderOptions.postcss, {
+                plugins: loaderOptions.postcss.plugins()
+            })
+        }
 
         return {
             loaders:  Object.assign({}, {
                 js: {
                     loader: 'babel-loader',
-                    options: Object.assign({}, this.babelOptions)
+                    options: Object.assign({}, loaderOptions.babel)
                 }
             }, cssLoaders),
             cssSourceMap: cssSourceMap,
-            postcss: {
-                useConfigFile: false,
-                sourceMap: cssSourceMap,
-                ident: 'postcss',
-                plugins: [
-                    require('postcss-flexbugs-fixes'),
-                    require('autoprefixer')({
-                        browsers: [
-                            '>1%',
-                            'last 4 versions',
-                            'Firefox ESR',
-                            'not ie < 9',
-                        ],
-                        flexbox: 'no-2009',
-                    }),
-                ]
-            },
+            postcss: postcss,
             preserveWhitespace: false,
             transformToRequire: {
                 video: 'src',
