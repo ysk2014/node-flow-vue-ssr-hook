@@ -77,8 +77,6 @@ module.exports = class VueSSRHook {
             if (sharedFS && sharedFS.existsSync(bundlePath) && sharedFS.existsSync(clientPath)) {
                 console.info("create or update ssr json");
                 callback && callback(sharedFS);
-            } else {
-                console.log("webpack css config error");
             }
         })
     }
