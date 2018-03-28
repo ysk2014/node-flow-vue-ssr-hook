@@ -1,6 +1,6 @@
 {
   "name": "flow-vue-ssr-hook",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "flow-build针对vue服务端渲染的解决方案",
   "main": "index.js",
   "scripts": {

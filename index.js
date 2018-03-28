@@ -12,10 +12,21 @@ module.exports = class VueSSRHook {
             clientManifest: "vue-ssr-client-manifest.json"
         }
 
-        this.options = Object.assign({}, defaults, options);
+        this.options = Object.assign({
+            entry: true
+        }, defaults, options);
     }
 
     apply(builder) {
+
+        if (this.options.entry) {
+            builder.on("entry-option", builder => {
+                builder.options.entry = {
+                    "client" : path.resolve(__dirname, './template/entry-client.js'),
+                    "server" : path.resolve(__dirname, './template/entry-server.js')
+                }
+            })
+        }
 
         builder.on("base-config", base => {
             base.setConfig({
@@ -175,6 +186,4 @@ module.exports = class VueSSRHook {
             }
         }
     }
-
-    
 }
