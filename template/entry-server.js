@@ -1,15 +1,15 @@
-import { createApp } from '@/app'
+import root from '@/app'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
-// This exported function will be called by `bundleRenderer`.
-// This is where we perform data-prefetching to determine the
-// state of our application before actually rendering it.
-// Since data fetching is async, this function is expected to
-// return a Promise that resolves to the app instance.
 export default context => {
   return new Promise((resolve, reject) => {
-    const { app, router, store } = createApp()
+
+    if (!root.data || typeof root.data != "function") {
+      return reject(new Error("The app.js file must have a data method, and the data must be a function"))
+    }
+
+    const { app, router, store } = root.data(false);
 
     const { url } = context
     const { fullPath } = router.resolve(url).route
