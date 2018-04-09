@@ -21,7 +21,7 @@ Vue.mixin({
   },
 
   beforeMount () {
-    if(this.$store.state.SSR_FETCHED) {
+    if(this.$store && this.$store.state.SSR_FETCHED) {
       return
     }
 
@@ -42,7 +42,9 @@ Vue.mixin({
   },
 
   mounted() {
-    this.$store.state.SSR_FETCHED = false
+    if (this.$store) {
+      this.$store.state.SSR_FETCHED = false
+    }
   }
 })
 
