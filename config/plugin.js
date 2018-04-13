@@ -31,3 +31,7 @@ exports.html = {
         };
     }
 };
+
+exports.manifest = {
+    env: ['dev', 'test', 'prod']
+};

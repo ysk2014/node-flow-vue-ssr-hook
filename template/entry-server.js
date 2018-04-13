@@ -11,15 +11,15 @@ export default context => {
 
     const { app, router, store } = root.data(false);
 
-    const { url } = context
-    const { fullPath } = router.resolve(url).route
+    const { req } = context
+    const { fullPath } = router.resolve(req.url).route
 
-    if (fullPath !== url) {
+    if (fullPath !== req.url) {
       return reject({ url: fullPath })
     }
 
     // set router's location
-    router.push(url)
+    router.push(req.url)
 
     // wait until router has resolved possible async hooks
     router.onReady(() => {
@@ -35,7 +35,8 @@ export default context => {
 
       Promise.all(matchedComponents.map(({ asyncData }) => asyncData && asyncData({
         store,
-        route: router.currentRoute
+        route: router.currentRoute,
+        context
       }))).then(() => {
         // After all preFetch hooks are resolved, our store is now
         // filled with the state needed to render the app.
