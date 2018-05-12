@@ -9,7 +9,7 @@ export default context => {
       return reject(new Error("The app.js file must have a data method, and the data must be a function"))
     }
 
-    const { app, router, store } = root.data(false);
+    const { app, router, store } = root.data(context);
 
     const { req } = context
     const { fullPath } = router.resolve(req.url).route
