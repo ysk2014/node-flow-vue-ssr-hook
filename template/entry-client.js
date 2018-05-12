@@ -2,6 +2,8 @@ import Vue from 'vue'
 import root from '@/app'
 import { createRedirect, promisify } from "./utils"
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 if (!root.data || typeof root.data != "function") {
   	throw new Error("The app.js file must have a data method, and the data must be a function");
 }
@@ -23,36 +25,51 @@ Vue.mixin({
 			},
 			params: to.params, 
 			query: to.query,
-			next: next
+			next: next,
+			isDev: isDev
 		};
 	
 		context.redirect = createRedirect(context, router, false);
 	
 
 		const {asyncData} = this.$options;
+		let promise;
 		if (asyncData && typeof asyncData === 'function') {
-			promisify(asyncData, {
+			promise = promisify(asyncData, {
 				store,
 				route: to,
 				context
-			}).then(()=> {
-				
-				if (root.methods && typeof root.methods.asyncDataComplete === "function") {
-					root.methods.asyncDataComplete();
-				}
-
-				if (context._status.redirected) {
-					next(false);
-				} else {
-					next()
-				}
 			});
+		} else if (asyncData && Object.prototype.toString.call(asyncData) === "[object Object]") {
+			if (typeof asyncData.type === 'string') {
+				promise = store.dispatch(asyncData.type, context).catch((err)=> {
+					if (asyncData.redirect) {
+						context.redirect(asyncData.redirect);
+					} else {
+						return Promise.reject(err);
+					}
+				});
+			} else {
+				if (isDev) {
+					throw new Error('The type field must be string type, if asyncData is an object');
+				}
+				promise = Promise.resolve(true);
+			}
 		} else {
+			promise = Promise.resolve(true);
+		}
+
+		promise.then(() => {
 			if (root.methods && typeof root.methods.asyncDataComplete === "function") {
 				root.methods.asyncDataComplete();
 			}
-			next();
-		}
+
+			if (context._status.redirected) {
+				next(false);
+			} else {
+				next()
+			}
+		}).catch(next);
 	},
 	
 	mounted() {
@@ -94,9 +111,7 @@ function render(to, from, next) {
 		return diffed || (diffed = (prevMatched[i] !== c))
 	})
 
-	const asyncDataHooks = activated.map(c => c.asyncData).filter(_ => _)
-
-	if (!asyncDataHooks.length) {
+	if (!activated.length) {
 		return next()
 	}
 
@@ -104,13 +119,28 @@ function render(to, from, next) {
 		root.methods.asyncDataBefore();
 	}
 
-	Promise.all(asyncDataHooks.map(asyncData => {
+	Promise.all(activated.map(({ asyncData}) => {
 		if (asyncData && typeof asyncData === 'function') {
 			return promisify(asyncData, {
 				store,
 				route: to,
 				context
 			});
+		} else if (asyncData && Object.prototype.toString.call(asyncData) === "[object Object]") {
+			if (typeof asyncData.type === 'string') {
+				return store.dispatch(asyncData.type, context).catch((err)=> {
+					if (asyncData.redirect) {
+						context.redirect(asyncData.redirect);
+					} else {
+						return Promise.reject(err);
+					}
+				});
+			} else {
+				if (isDev) {
+					throw new Error('The type field must be string type, if asyncData is an object');
+				}
+				return Promise.resolve(true);
+			}
 		} else {
 			return Promise.resolve(true);
 		}

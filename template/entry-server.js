@@ -35,6 +35,7 @@ export default (context) => {
 		context.redirect = createRedirect(context, router, true);
 		context.params = context.req.params;
 		context.query = context.req.query;
+		context.isDev = isDev;
 
 		const { req } = context
 		const { fullPath } = router.resolve(req.url).route
@@ -64,6 +65,21 @@ export default (context) => {
 						route: router.currentRoute,
 						context
 					});
+				} else if (asyncData && Object.prototype.toString.call(asyncData) === "[object Object]") {
+					if (typeof asyncData.type === 'string') {
+						return store.dispatch(asyncData.type, context).catch((err)=> {
+							if (asyncData.redirect) {
+								context.redirect(asyncData.redirect);
+							} else {
+								return Promise.reject(err);
+							}
+						});
+					} else {
+						if (isDev) {
+							throw new Error('The type field must be string type, if asyncData is an object');
+						}
+						return Promise.resolve(true);
+					}
 				} else {
 					return Promise.resolve(true);
 				}

@@ -1,5 +1,3 @@
-
-
 export function createRedirect(context, router, isServer) {
     return (status, path, query)=> {
         if (!status) return;
