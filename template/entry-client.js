@@ -82,6 +82,7 @@ function render(to, from, next) {
                         .catch(err => {
                             if (asyncData.redirect) {
                                 context.redirect(asyncData.redirect);
+                                return Promise.resolve(false);
                             } else {
                                 return Promise.reject(err);
                             }
@@ -92,10 +93,10 @@ function render(to, from, next) {
                             "The type field must be string type, if asyncData is an object"
                         );
                     }
-                    return Promise.resolve(true);
+                    return Promise.resolve(false);
                 }
             } else {
-                return Promise.resolve(true);
+                return Promise.resolve(false);
             }
         })
     )

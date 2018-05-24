@@ -1,31 +1,47 @@
 const path = require("path");
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
-const nodeExternals = require('webpack-node-externals');
+const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const nodeExternals = require("webpack-node-externals");
 let loader = require("./config/loader");
 let plugin = require("./config/plugin");
 
 module.exports = class VueSSRHook {
+    /**
+     * 
+     * @param {*} options 
+     */
     constructor(options = {}) {
         let defaults = {
             output: "server-bundle.js",
             serverBundle: "server-bundle.json",
             clientManifest: "vue-ssr-client-manifest.json"
-        }
+        };
 
-        this.options = Object.assign({
-            entry: true
-        }, defaults, options);
+        this.options = Object.assign(
+            {
+                entry: true
+            },
+            defaults,
+            options
+        );
     }
-
+    /**
+     * 
+     * @param {*} builder 
+     */
     apply(builder) {
-
         if (this.options.entry) {
             builder.on("entry-option", builder => {
                 builder.options.entry = {
-                    "client" : path.resolve(__dirname, './template/entry-client.js'),
-                    "server" : path.resolve(__dirname, './template/entry-server.js')
-                }
-            })
+                    client: path.resolve(
+                        __dirname,
+                        "./template/entry-client.js"
+                    ),
+                    server: path.resolve(
+                        __dirname,
+                        "./template/entry-server.js"
+                    )
+                };
+            });
         }
 
         builder.on("base-config", base => {
@@ -35,12 +51,14 @@ module.exports = class VueSSRHook {
                 serverBundle: this.options.serverBundle
             });
 
-            base.setExtensions(['.vue']);
+            base.setExtensions([".vue"]);
             base.setAlias({
                 "@": path.resolve(builder.options.srcDir),
-                "vue$": "vue/dist/vue.esm.js"
+                vue$: "vue/dist/vue.esm.js"
             });
-            base.setResolveLoaderModules([path.join(__dirname, './node_modules')])
+            base.setResolveLoaderModules([
+                path.join(__dirname, "./node_modules")
+            ]);
         });
 
         builder.on("merge-plugin", base => {
@@ -55,26 +73,37 @@ module.exports = class VueSSRHook {
         builder.on("client-config", client => {
             client.setEntry({
                 app: builder.options.entry.client,
-                vendor: ["vue","vue-router", "vuex"].concat(builder.options.entry.vendor).filter(v => v)
+                vendor: ["vue", "vue-router", "vuex"]
+                    .concat(builder.options.entry.vendor)
+                    .filter(v => v)
             });
 
-            client.webpackConfig.output.devtoolModuleFilenameTemplate = '[absolute-resource-path]';
+            client.webpackConfig.output.devtoolModuleFilenameTemplate =
+                "[absolute-resource-path]";
 
             if (client.env == "dev") {
                 client.setEntry({
                     app: [
-                        'webpack-hot-middleware/client?name=client&reload=true&timeout=30000'.replace(/\/\//g, '/'),
+                        "webpack-hot-middleware/client?name=client&reload=true&timeout=30000".replace(
+                            /\/\//g,
+                            "/"
+                        ),
                         builder.options.entry.client
                     ],
-                    vendor: ["vue","vue-router", "vuex"].concat(builder.options.entry.vendor).filter(v => v)
+                    vendor: ["vue", "vue-router", "vuex"]
+                        .concat(builder.options.entry.vendor)
+                        .filter(v => v)
                 });
-            };
+            }
         });
 
         builder.on("server-config", server => {
             server.setExternals([
                 nodeExternals({
-                    whitelist: [/es6-promise|\.(?!(?:js|json)$).{1,5}$/i, /\.css$/]
+                    whitelist: [
+                        /es6-promise|\.(?!(?:js|json)$).{1,5}$/i,
+                        /\.css$/
+                    ]
                 })
             ]);
             server.webpackConfig.output.filename = this.options.output;
@@ -83,73 +112,98 @@ module.exports = class VueSSRHook {
         builder.on("ssr-done", (sharedFS, callback) => {
             let distPath = builder.options.build.outputPath;
             let bundlePath = path.resolve(distPath, this.options.serverBundle);
-            let clientPath = path.resolve(distPath, this.options.clientManifest);
-            
-            if (sharedFS && sharedFS.existsSync(bundlePath) && sharedFS.existsSync(clientPath)) {
+            let clientPath = path.resolve(
+                distPath,
+                this.options.clientManifest
+            );
+
+            if (
+                sharedFS &&
+                sharedFS.existsSync(bundlePath) &&
+                sharedFS.existsSync(clientPath)
+            ) {
                 console.info("create or update ssr json");
                 callback && callback(sharedFS);
             }
-        })
+        });
     }
-
+    /**
+     * 
+     * @param {*} options 
+     */
     cssLoaders(options) {
         options = options || {};
 
         const cssLoader = {
-            loader: 'css-loader',
-            options: Object.assign({}, {
-                sourceMap: options.sourceMap
-            }, options.loaderOptions.css)
+            loader: "css-loader",
+            options: Object.assign(
+                {},
+                {
+                    sourceMap: options.sourceMap
+                },
+                options.loaderOptions.css
+            )
         };
 
         var postcssLoader = {
-            loader: 'postcss-loader',
-            options: Object.assign({}, {
-                useConfigFile: false
-            }, options.loaderOptions.postcss)
-        }
-        
-        function generateLoaders (loader, loaderOptions) {
+            loader: "postcss-loader",
+            options: Object.assign(
+                {},
+                {
+                    useConfigFile: false
+                },
+                options.loaderOptions.postcss
+            )
+        };
+
+        function generateLoaders(loader, loaderOptions) {
             const loaders = [cssLoader, postcssLoader];
 
             if (options.extract && options.imerge) {
                 loaders.push({
-                    loader: 'imerge-loader'
-                })
+                    loader: "imerge-loader"
+                });
             }
 
             if (loader) {
                 loaders.push({
-                    loader: loader + '-loader',
-                    options: Object.assign({}, loaderOptions, {
-                        sourceMap: options.sourceMap
-                    }, options.loaderOptions[loader])
-                })
+                    loader: loader + "-loader",
+                    options: Object.assign(
+                        {},
+                        loaderOptions,
+                        {
+                            sourceMap: options.sourceMap
+                        },
+                        options.loaderOptions[loader]
+                    )
+                });
             }
-        
-            
+
             if (options.extract) {
                 return ExtractTextPlugin.extract({
                     use: loaders,
                     fallback: options.fallback
-                })
+                });
             } else {
-                return [options.fallback].concat(loaders)
+                return [options.fallback].concat(loaders);
             }
         }
 
         return {
             css: generateLoaders(),
             postcss: generateLoaders(),
-            less: generateLoaders('less'),
-            sass: generateLoaders('sass', { indentedSyntax: true }),
-            scss: generateLoaders('sass'),
-            stylus: generateLoaders('stylus'),
-            styl: generateLoaders('stylus')
-        }
+            less: generateLoaders("less"),
+            sass: generateLoaders("sass", { indentedSyntax: true }),
+            scss: generateLoaders("sass"),
+            stylus: generateLoaders("stylus"),
+            styl: generateLoaders("stylus")
+        };
     }
-
-    vueLoader({ cssSourceMap, extract, fallback, imerge, loaderOptions}) {
+    /**
+     * 
+     * @param {*} param0 
+     */
+    vueLoader({ cssSourceMap, extract, fallback, imerge, loaderOptions }) {
         let cssLoaders = this.cssLoaders({
             sourceMap: cssSourceMap,
             extract: extract,
@@ -158,32 +212,35 @@ module.exports = class VueSSRHook {
             loaderOptions: loaderOptions
         });
 
-        
         let postcss = loaderOptions.postcss;
-        
+
         if (typeof loaderOptions.postcss.plugins == "function") {
             postcss = Object.assign({}, loaderOptions.postcss, {
                 useConfigFile: false,
                 plugins: loaderOptions.postcss.plugins()
-            })
+            });
         }
 
         return {
-            loaders:  Object.assign({}, {
-                js: {
-                    loader: 'babel-loader',
-                    options: Object.assign({}, loaderOptions.babel)
-                }
-            }, cssLoaders),
+            loaders: Object.assign(
+                {},
+                {
+                    js: {
+                        loader: "babel-loader",
+                        options: Object.assign({}, loaderOptions.babel)
+                    }
+                },
+                cssLoaders
+            ),
             cssSourceMap: cssSourceMap,
             postcss: postcss,
             preserveWhitespace: false,
             transformToRequire: {
-                video: 'src',
-                source: 'src',
-                img: 'src',
-                image: 'xlink:href'
+                video: "src",
+                source: "src",
+                img: "src",
+                image: "xlink:href"
             }
-        }
+        };
     }
-}
+};

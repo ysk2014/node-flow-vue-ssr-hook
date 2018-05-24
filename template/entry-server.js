@@ -59,8 +59,8 @@ export default context => {
         const { req } = context;
         const { fullPath, params, query } = router.resolve(req.url).route;
 
-        context.params = context.req.params;
-        context.query = context.req.query;
+        context.params = params;
+        context.query = query;
 
         if (fullPath !== req.url) {
             return reject({ url: fullPath });
@@ -80,25 +80,24 @@ export default context => {
                 }
             }
 
+            const asyncDataHooks = matchedComponents.map(c => c.asyncData).filter(_ => _);
+
             Promise.all(
-                matchedComponents.filter(({ asyncData }) => {
-                    if (asyncData && typeof asyncData === "function") {
+                asyncDataHooks.map(asyncData => {
+                    if (typeof asyncData === "function") {
                         return promisify(asyncData, {
                             store,
                             route: router.currentRoute,
                             context
                         });
-                    } else if (
-                        asyncData &&
-                        Object.prototype.toString.call(asyncData) ===
-                            "[object Object]"
-                    ) {
+                    } else if (Object.prototype.toString.call(asyncData) === "[object Object]") {
                         if (typeof asyncData.type === "string") {
                             return store
                                 .dispatch(asyncData.type, context)
                                 .catch(err => {
                                     if (asyncData.redirect) {
                                         context.redirect(asyncData.redirect);
+                                        return Promise.resolve(false);
                                     } else {
                                         return Promise.reject(err);
                                     }
@@ -109,10 +108,10 @@ export default context => {
                                     "The type field must be string type, if asyncData is an object"
                                 );
                             }
-                            return false;
+                            return Promise.resolve(false);
                         }
                     } else {
-                        return false;
+                        return Promise.resolve(false);
                     }
                 })
             )
