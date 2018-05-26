@@ -82,10 +82,8 @@ function render(to, from, next) {
                         .catch(err => {
                             if (asyncData.redirect) {
                                 context.redirect(asyncData.redirect);
-                                return Promise.resolve(false);
-                            } else {
-                                return Promise.reject(err);
                             }
+                            return Promise.reject(err);
                         });
                 } else {
                     if (isDev) {

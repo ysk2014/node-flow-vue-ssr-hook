@@ -81,7 +81,6 @@ export default context => {
             }
 
             const asyncDataHooks = matchedComponents.map(c => c.asyncData).filter(_ => _);
-
             Promise.all(
                 asyncDataHooks.map(asyncData => {
                     if (typeof asyncData === "function") {
@@ -97,10 +96,8 @@ export default context => {
                                 .catch(err => {
                                     if (asyncData.redirect) {
                                         context.redirect(asyncData.redirect);
-                                        return Promise.resolve(false);
-                                    } else {
-                                        return Promise.reject(err);
                                     }
+                                    return Promise.reject(err);
                                 });
                         } else {
                             if (isDev) {
