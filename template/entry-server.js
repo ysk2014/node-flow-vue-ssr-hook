@@ -88,15 +88,16 @@ export default context => {
                             store,
                             route: router.currentRoute,
                             context
+                        }).catch(err => {
+                            context.redirect(err.url || "/404");
+                            return Promise.reject(err);
                         });
                     } else if (Object.prototype.toString.call(asyncData) === "[object Object]") {
                         if (typeof asyncData.type === "string") {
                             return store
                                 .dispatch(asyncData.type, context)
                                 .catch(err => {
-                                    if (asyncData.redirect) {
-                                        context.redirect(asyncData.redirect);
-                                    }
+                                    context.redirect(asyncData.redirect || "/404");
                                     return Promise.reject(err);
                                 });
                         } else {
