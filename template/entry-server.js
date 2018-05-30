@@ -112,11 +112,10 @@ export default context => {
                 })
             )
                 .then(() => {
-                    context.state = store.state;
-                    store.state.SSR_FETCHED = true;
-
                     if (context._status.redirected) return resolve(false);
 
+                    context.state = store.state;
+                    store.state.SSR_FETCHED = true;
                     return resolve(app);
                 })
                 .catch(reject);
