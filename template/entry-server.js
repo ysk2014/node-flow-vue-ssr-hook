@@ -6,8 +6,6 @@ import { urlJoin, createRedirect, promisify } from "./utils";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-const noopApp = () => new Vue({ render: h => h("div") });
-
 const createNext = ssrContext => opts => {
     ssrContext._status.redirected = true;
     opts.query = stringify(opts.query);
@@ -90,7 +88,7 @@ export default context => {
                             context
                         }).catch(err => {
                             context.redirect(err.url || "/404");
-                            return Promise.reject(err);
+                            return Promise.resolve(err);
                         });
                     } else if (Object.prototype.toString.call(asyncData) === "[object Object]") {
                         if (typeof asyncData.type === "string") {
@@ -98,7 +96,7 @@ export default context => {
                                 .dispatch(asyncData.type, context)
                                 .catch(err => {
                                     context.redirect(asyncData.redirect || "/404");
-                                    return Promise.reject(err);
+                                    return Promise.resolve(err);
                                 });
                         } else {
                             if (isDev) {
@@ -117,7 +115,7 @@ export default context => {
                     context.state = store.state;
                     store.state.SSR_FETCHED = true;
 
-                    if (context._status.redirected) return resolve(noopApp());
+                    if (context._status.redirected) return resolve(false);
 
                     return resolve(app);
                 })

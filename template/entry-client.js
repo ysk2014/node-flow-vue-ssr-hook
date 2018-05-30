@@ -74,7 +74,7 @@ function render(to, from, next) {
                     context
                 }).catch(err => {
                     context.redirect(err.url || "/404");
-                    return Promise.reject(err);
+                    return Promise.resolve(err);
                 });
             } else if (
                 Object.prototype.toString.call(asyncData) === "[object Object]"
@@ -84,7 +84,7 @@ function render(to, from, next) {
                         .dispatch(asyncData.type, context)
                         .catch(err => {
                             context.redirect(asyncData.redirect || "/404");
-                            return Promise.reject(err);
+                            return Promise.resolve(err);
                         });
                 } else {
                     if (isDev) {
