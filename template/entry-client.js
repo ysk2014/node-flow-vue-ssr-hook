@@ -21,16 +21,6 @@ Vue.use(Meta, {
 
 const { app, router, store } = root.data();
 
-// a global mixin that calls `asyncData` when a route component's params change
-
-Vue.mixin({
-    mounted() {
-        if (this.$store) {
-            this.$store.state.SSR_FETCHED = false;
-        }
-    }
-});
-
 // prime the store with server-initialized state.
 // the state is determined during SSR and inlined in the page markup.
 if (window.__INITIAL_STATE__) {
@@ -122,4 +112,8 @@ router.onReady(() => {
 
     // actually mount to DOM
     app.$mount(root.el || "#app");
+
+    Vue.nextTick(() => {
+        store.state.SSR_FETCHED = false;
+    });
 });
