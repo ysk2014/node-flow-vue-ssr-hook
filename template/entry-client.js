@@ -45,6 +45,22 @@ function render(to, from, next) {
 
     const matched = router.getMatchedComponents(to);
 
+    let isValid = true;
+
+    matched.forEach(component => {
+        if (!isValid) return;
+        if (typeof component.validate !== "function") return;
+        isValid = component.validate({
+            params: to.params || {},
+            query: to.query || {}
+        });
+    });
+
+    if (!isValid) {
+        context.redirect("/404");
+        return next();
+    }
+
     const asyncDataHooks = matched.map(c => c.asyncData).filter(_ => _);
 
     if (!asyncDataHooks.length) {

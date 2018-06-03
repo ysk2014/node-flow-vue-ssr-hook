@@ -78,7 +78,28 @@ export default context => {
                 }
             }
 
-            const asyncDataHooks = matchedComponents.map(c => c.asyncData).filter(_ => _);
+            let isValid = true;
+
+            matchedComponents.forEach(component => {
+                if (!isValid) return;
+                if (typeof component.validate !== "function") return;
+                isValid = component.validate({
+                    params: params || {},
+                    query: query || {}
+                });
+            });
+
+            if (!isValid) {
+                if (req.url == "/404" || req.url.indexOf(".") >= 0) {
+                    return reject({ code: 404 });
+                } else {
+                    return reject({ url: "/404" });
+                }
+            }
+
+            const asyncDataHooks = matchedComponents
+                .map(c => c.asyncData)
+                .filter(_ => _);
             Promise.all(
                 asyncDataHooks.map(asyncData => {
                     if (typeof asyncData === "function") {
@@ -90,12 +111,17 @@ export default context => {
                             context.redirect(err.url || "/404");
                             return Promise.resolve(err);
                         });
-                    } else if (Object.prototype.toString.call(asyncData) === "[object Object]") {
+                    } else if (
+                        Object.prototype.toString.call(asyncData) ===
+                        "[object Object]"
+                    ) {
                         if (typeof asyncData.type === "string") {
                             return store
                                 .dispatch(asyncData.type, context)
                                 .catch(err => {
-                                    context.redirect(asyncData.redirect || "/404");
+                                    context.redirect(
+                                        asyncData.redirect || "/404"
+                                    );
                                     return Promise.resolve(err);
                                 });
                         } else {
