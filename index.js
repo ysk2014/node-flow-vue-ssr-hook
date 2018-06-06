@@ -6,8 +6,8 @@ let plugin = require("./config/plugin");
 
 module.exports = class VueSSRHook {
     /**
-     * 
-     * @param {*} options 
+     *
+     * @param {*} options
      */
     constructor(options = {}) {
         let defaults = {
@@ -25,8 +25,8 @@ module.exports = class VueSSRHook {
         );
     }
     /**
-     * 
-     * @param {*} builder 
+     *
+     * @param {*} builder
      */
     apply(builder) {
         if (this.options.entry) {
@@ -71,42 +71,39 @@ module.exports = class VueSSRHook {
         });
 
         builder.on("client-config", client => {
-            client.setEntry({
+            let entry = {
                 app: builder.options.entry.client,
                 vendor: ["vue", "vue-router", "vuex"]
                     .concat(builder.options.entry.vendor)
                     .filter(v => v)
-            });
-
-            client.webpackConfig.output.devtoolModuleFilenameTemplate =
-                "[absolute-resource-path]";
+            };
 
             if (client.env == "dev") {
-                client.setEntry({
-                    app: [
-                        "webpack-hot-middleware/client?name=client&reload=true&timeout=30000".replace(
-                            /\/\//g,
-                            "/"
-                        ),
-                        builder.options.entry.client
-                    ],
-                    vendor: ["vue", "vue-router", "vuex"]
-                        .concat(builder.options.entry.vendor)
-                        .filter(v => v)
-                });
+                entry.app = [
+                    "webpack-hot-middleware/client?name=client&reload=true&timeout=30000".replace(
+                        /\/\//g,
+                        "/"
+                    ),
+                    entry.app
+                ];
             }
+
+            client.setEntry(entry);
+
+            client.mergeOutput({
+                devtoolModuleFilenameTemplate: "[absolute-resource-path]"
+            });
         });
 
         builder.on("server-config", server => {
             server.setExternals([
                 nodeExternals({
-                    whitelist: [
-                        /es6-promise|\.(?!(?:js|json)$).{1,5}$/i,
-                        /\.css$/
-                    ]
+                    whitelist: [/es6-promise|\.(?!(?:js|json)$).{1,5}$/i, /\.css$/]
                 })
             ]);
-            server.webpackConfig.output.filename = this.options.output;
+            server.mergeOutput({
+                filename: this.options.output
+            });
         });
 
         builder.on("ssr-done", (sharedFS, callback) => {
@@ -128,8 +125,8 @@ module.exports = class VueSSRHook {
         });
     }
     /**
-     * 
-     * @param {*} options 
+     *
+     * @param {*} options
      */
     cssLoaders(options) {
         options = options || {};
@@ -200,8 +197,8 @@ module.exports = class VueSSRHook {
         };
     }
     /**
-     * 
-     * @param {*} param0 
+     *
+     * @param {*} param0
      */
     vueLoader({ cssSourceMap, extract, fallback, imerge, loaderOptions }) {
         let cssLoaders = this.cssLoaders({
