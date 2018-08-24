@@ -1,7 +1,7 @@
 const path = require("path");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const nodeExternals = require("webpack-node-externals");
-let loader = require("./config/loader");
+let rules = require("./config/rules");
 let plugin = require("./config/plugin");
 
 module.exports = class VueSSRHook {
@@ -31,7 +31,7 @@ module.exports = class VueSSRHook {
     apply(builder) {
         if (this.options.entry) {
             builder.on("entry-option", builder => {
-                builder.options.entry = {
+                builder.set("entry", {
                     client: path.resolve(
                         __dirname,
                         "./template/entry-client.js"
@@ -40,7 +40,7 @@ module.exports = class VueSSRHook {
                         __dirname,
                         "./template/entry-server.js"
                     )
-                };
+                });
             });
         }
 
@@ -51,23 +51,31 @@ module.exports = class VueSSRHook {
                 serverBundle: this.options.serverBundle
             });
 
-            base.setExtensions([".vue"]);
-            base.setAlias({
-                "@": path.resolve(builder.options.srcDir),
-                vue$: "vue/dist/vue.esm.js"
+            config.update("resolve.extensions", old => {
+                old.push(".vue");
+                return old;
             });
-            base.setResolveLoaderModules([
-                path.join(__dirname, "./node_modules")
-            ]);
+
+            config.update("resolve.alias", old => {
+                return Object.assign({}, old, {
+                    "@": path.resolve(builder.get("srcDir")),
+                    vue$: "vue/dist/vue.esm.js"
+                });
+            });
+
+            config.update("resolveLoader.modules", old => {
+                old.push(path.join(__dirname, "./node_modules"));
+                return old;
+            });
         });
 
         builder.on("merge-plugin", base => {
             base.mergePlugin(plugin);
         });
 
-        builder.on("merge-loader", base => {
-            loader.vue.options = this.vueLoader(base.config);
-            base.mergeLoader(loader);
+        builder.on("merge-rule", base => {
+            rules.vue.options = this.vueLoader(base.config);
+            base.mergeRule(rules);
         });
 
         builder.on("client-config", client => {
@@ -88,21 +96,32 @@ module.exports = class VueSSRHook {
                 ];
             }
 
-            client.setEntry(entry);
+            config.set("entry", entry);
 
-            client.mergeOutput({
-                devtoolModuleFilenameTemplate: "[absolute-resource-path]"
+            config.update("output", old => {
+                return Object.assign({}, old, {
+                    devtoolModuleFilenameTemplate: "[absolute-resource-path]"
+                });
             });
         });
 
-        builder.on("server-config", server => {
-            server.setExternals([
-                nodeExternals({
-                    whitelist: [/es6-promise|\.(?!(?:js|json)$).{1,5}$/i, /\.css$/]
-                })
-            ]);
-            server.mergeOutput({
-                filename: this.options.output
+        builder.on("server-config", config => {
+            config.update("externals", old => {
+                old.push(
+                    nodeExternals({
+                        whitelist: [
+                            /es6-promise|\.(?!(?:js|json)$).{1,5}$/i,
+                            /\.css$/
+                        ]
+                    })
+                );
+                return old;
+            });
+
+            config.update("output", old => {
+                return Object.assign({}, old, {
+                    filename: this.options.output
+                });
             });
         });
 

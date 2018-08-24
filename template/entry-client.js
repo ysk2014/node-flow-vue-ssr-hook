@@ -27,6 +27,53 @@ if (window.__INITIAL_STATE__) {
     store.replaceState(window.__INITIAL_STATE__);
 }
 
+let browserDataStatus = false;
+
+let dealBrowserData = (vm, to, from) => {
+    if (browserDataStatus) return false;
+
+    const { browserData } = vm.$options;
+    if (browserData) {
+        browserDataStatus = true;
+        let promise = browserData.call(vm, {
+            ssr: store.state.SSR_FETCHED,
+            to: to,
+            from: from
+        });
+        if (
+            !promise ||
+            (!(promise instanceof Promise) &&
+                typeof promise.then !== "function")
+        ) {
+            promise = Promise.resolve(promise);
+        }
+        return promise
+            .then(r => {
+                browserDataStatus = false;
+                return r;
+            })
+            .catch(e => {
+                browserDataStatus = false;
+                return e;
+            });
+    } else {
+        return Promise.resolve();
+    }
+};
+
+Vue.mixin({
+    beforeRouteUpdate(to, from, next) {
+        dealBrowserData(this, to, from);
+        next();
+    },
+    mounted() {
+        dealBrowserData(this);
+    },
+    activated() {
+        dealBrowserData(this);
+    }
+});
+
 function render(to, from, next) {
     let context = {
         _status: {
