@@ -51,19 +51,19 @@ module.exports = class VueSSRHook {
                 serverBundle: this.options.serverBundle
             });
 
-            config.update("resolve.extensions", old => {
+            base.update("resolve.extensions", old => {
                 old.push(".vue");
                 return old;
             });
 
-            config.update("resolve.alias", old => {
+            base.update("resolve.alias", old => {
                 return Object.assign({}, old, {
                     "@": path.resolve(builder.get("srcDir")),
                     vue$: "vue/dist/vue.esm.js"
                 });
             });
 
-            config.update("resolveLoader.modules", old => {
+            base.update("resolveLoader.modules", old => {
                 old.push(path.join(__dirname, "./node_modules"));
                 return old;
             });
@@ -96,9 +96,9 @@ module.exports = class VueSSRHook {
                 ];
             }
 
-            config.set("entry", entry);
+            client.set("entry", entry);
 
-            config.update("output", old => {
+            client.update("output", old => {
                 return Object.assign({}, old, {
                     devtoolModuleFilenameTemplate: "[absolute-resource-path]"
                 });
