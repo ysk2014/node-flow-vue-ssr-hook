@@ -2,7 +2,14 @@ exports.vue = {
     enable: true,
     test: /\.vue/,
     loader: "vue-loader",
-    options: {}
+    options: {
+        transformToRequire: {
+            video: "src",
+            source: "src",
+            img: "src",
+            image: "xlink:href"
+        }
+    }
 };
 
 exports.babel = {
